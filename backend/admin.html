@@ -1,0 +1,71 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>Overlay Admin (Local)</title>
+    <style>
+        body {
+            font-family: ui-sans-serif, system-ui;
+            margin: 2rem;
+        }
+
+        code {
+            padding: 2px 4px;
+            background: #f3f3f3;
+        }
+
+        .row {
+            margin: 12px 0;
+        }
+
+        input[type=number] {
+            width: 80px;
+        }
+
+        pre {
+            background: #fafafa;
+            border: 1px solid #eee;
+            padding: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Overlay Admin</h1>
+    <div class="row">Streamer: <b id="s"></b></div>
+    <div class="row">Hotkeys (in this tab): <code>Ctrl + Numpad1</code> toggle; <code>Ctrl + Numpad2</code> reset</div>
+    <div class="row">
+        Client sampleN:
+        <input id="sampleN" type="number" min="1" value="32">
+        <button id="apply">Apply</button>
+    </div>
+    <pre id="log"></pre>
+    <script>const params = new URLSearchParams(location.search);
+    const streamer = params.get('streamer') || 'dougdoug';
+    document.getElementById('s').textContent = streamer;
+
+    const ws = new WebSocket(`ws://localhost:8787/ws?streamer=${encodeURIComponent(streamer)}&role=admin`);
+    const logEl = document.getElementById('log');
+    const SECRET = 'REPLACE_ME_WITH_A_LONG_RANDOM_STRING'; // must match .env ADMIN_SECRET
+
+    function log(m){ logEl.textContent = m + '\n' + logEl.textContent; }
+
+    ws.onopen = ()=>log('WS connected');
+    ws.onmessage = (ev)=>log('MSG ' + ev.data);
+    ws.onclose = ()=>log('WS closed');
+
+    function sendAdmin(action, value){
+      ws.send(JSON.stringify({ type:'admin', action, value, secret: SECRET }));
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (!e.ctrlKey) return;
+      if (e.code === 'Numpad1') { e.preventDefault(); sendAdmin('toggle'); }
+      if (e.code === 'Numpad2') { e.preventDefault(); sendAdmin('reset'); }
+    });
+
+    document.getElementById('apply').addEventListener('click', ()=>{
+      const v = parseInt(document.getElementById('sampleN').value, 10);
+      if (Number.isInteger(v) && v >= 1) sendAdmin('setSampleN', v);
+    });</script>
+</body>
+</html>
