@@ -8,9 +8,10 @@ import { WebSocketServer } from 'ws';
 import { v4 as uuid } from 'uuid';
 import fs from 'fs';
 import path from 'path';
-import url from 'url';
+import { fileURLToPath } from 'url';
 
-const __dirname = path.dirname(url.fileURLToPath(import.meta.url));
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const cfg = {
     port: parseInt(process.env.PORT || '8787', 10),
@@ -37,14 +38,18 @@ const app = express();
 app.use(express.json({ limit: '1mb' }));
 app.use(helmet({ crossOriginEmbedderPolicy: false }));
 
-// Serve admin static assets strictly from localhost
-app.use('/_admin_static', (req, res, next) => {
-    const host = (req.headers.host || '').toLowerCase();
-    if (!host.startsWith('localhost') && !host.startsWith('127.0.0.1') && !host.startsWith('[::1]')) {
-        return res.status(404).send('Not found');
-    }
-    next();
-}, express.static(path.join(__dirname, 'admin-static'), {
+// ----- Localhost-only guard (ignore port) -----
+const localOnly = (req, res, next) => {
+    const host = (req.headers.host || '').split(':')[0].toLowerCase();
+    if (host === 'localhost' || host === '127.0.0.1' || host === '[::1]') return next();
+    return res.status(404).send('Not found');
+};
+
+// ----- Admin static assets (served only on localhost) -----
+const ADMIN_STATIC_DIR = path.resolve(__dirname, 'admin-static');
+console.log('[admin-static] Serving from:', ADMIN_STATIC_DIR, 'exists=', fs.existsSync(ADMIN_STATIC_DIR));
+
+app.use('/_admin_static', localOnly, express.static(ADMIN_STATIC_DIR, {
     fallthrough: false,
     index: false,
     etag: true,
@@ -52,6 +57,20 @@ app.use('/_admin_static', (req, res, next) => {
     maxAge: '1h'
 }));
 
+// Explicit content-type routes (defensive against MIME/nosniff issues)
+app.get('/_admin_static/admin.js', localOnly, (req, res) => {
+    res.type('application/javascript').sendFile(path.join(ADMIN_STATIC_DIR, 'admin.js'));
+});
+app.get('/_admin_static/admin.css', localOnly, (req, res) => {
+    res.type('text/css').sendFile(path.join(ADMIN_STATIC_DIR, 'admin.css'));
+});
+
+// Admin page (localhost only)
+app.get('/admin', localOnly, (req, res) => {
+    res.sendFile(path.join(__dirname, 'admin.html'));
+});
+
+// ----- CORS -----
 app.use(cors({
     origin: (origin, cb) => {
         if (!origin) return cb(null, true);
@@ -60,7 +79,7 @@ app.use(cors({
     }
 }));
 
-// In-memory per-streamer rooms
+// ----- Rooms / state -----
 const rooms = new Map();
 // room: { clients:Set<WS>, state:{active,lastReset,clientSampleN}, grid:Uint32Array, recentDots:Float32Array, recentIdx, serverSampleCtr, stats, ipWindow:Map }
 
@@ -119,15 +138,6 @@ function rateLimitOk(room, ip) {
     return true;
 }
 
-// Admin page (ONLY on localhost)
-app.get('/admin', (req, res) => {
-    const host = (req.headers.host || '').toLowerCase();
-    if (!host.startsWith('localhost') && !host.startsWith('127.0.0.1') && !host.startsWith('[::1]')) {
-        return res.status(404).send('Not found');
-    }
-    res.sendFile(path.join(__dirname, 'admin.html'));
-});
-
 // Health
 app.get('/healthz', (_, res) => res.send('ok'));
 
@@ -182,12 +192,11 @@ app.post('/ingest', (req, res) => {
     });
 });
 
-// Start HTTP server
+// ----- HTTP server + WS -----
 const server = app.listen(cfg.port, () => {
     console.log(`Local backend on http://localhost:${cfg.port}`);
 });
 
-// WebSocket only for OBS and local admin
 const wss = new WebSocketServer({ server, path: cfg.wsPath });
 
 wss.on('connection', (ws, req) => {
