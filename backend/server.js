@@ -35,8 +35,21 @@ const GRID_H = cfg.grid.h;
 
 const app = express();
 app.use(express.json({ limit: '1mb' }));
-app.use(helmet({
-    crossOriginEmbedderPolicy: false
+app.use(helmet({ crossOriginEmbedderPolicy: false }));
+
+// Serve admin static assets strictly from localhost
+app.use('/_admin_static', (req, res, next) => {
+    const host = (req.headers.host || '').toLowerCase();
+    if (!host.startsWith('localhost') && !host.startsWith('127.0.0.1') && !host.startsWith('[::1]')) {
+        return res.status(404).send('Not found');
+    }
+    next();
+}, express.static(path.join(__dirname, 'admin-static'), {
+    fallthrough: false,
+    index: false,
+    etag: true,
+    cacheControl: true,
+    maxAge: '1h'
 }));
 
 app.use(cors({

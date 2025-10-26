@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <meta http-equiv="Content-Security-Policy"
           content="default-src 'self';
-                 connect-src 'self' https://api.overlay.phummylw.com ws: wss:;
+                 connect-src 'self' https: wss:;
                  img-src 'self' data:;
                  style-src 'self' 'unsafe-inline';
                  script-src 'self';
@@ -15,6 +15,7 @@
     <meta name="referrer" content="no-referrer">
     <link rel="stylesheet" href="/overlay.css">
     <script src="/config.js"></script>
+    <script src="/overlay.js" defer></script>
     <style>
         .player-frame iframe {
             display: none;
@@ -27,11 +28,5 @@
             <div class="overlay"><canvas id="overlay"></canvas></div>
         </div>
     </div>
-    <script>const segs = location.pathname.split('/').filter(Boolean);
-    if (segs[0] !== 'obs') {
-      const streamer = segs[0] || 'dougdoug';
-      location.replace(`/obs/${streamer}`);
-    }</script>
-    <script src="/overlay.js"></script>
 </body>
 </html>

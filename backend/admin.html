@@ -1,71 +1,61 @@
-<!doctype html>
+﻿<!doctype html>
 <html>
 <head>
     <meta charset="utf-8" />
     <title>Overlay Admin (Local)</title>
-    <style>
-        body {
-            font-family: ui-sans-serif, system-ui;
-            margin: 2rem;
-        }
-
-        code {
-            padding: 2px 4px;
-            background: #f3f3f3;
-        }
-
-        .row {
-            margin: 12px 0;
-        }
-
-        input[type=number] {
-            width: 80px;
-        }
-
-        pre {
-            background: #fafafa;
-            border: 1px solid #eee;
-            padding: 10px;
-        }
-    </style>
+    <meta http-equiv="Content-Security-Policy"
+          content="default-src 'self';
+                 connect-src 'self' ws: http: https:;
+                 img-src 'self' data:;
+                 style-src 'self' 'unsafe-inline';
+                 script-src 'self';
+                 base-uri 'none';
+                 form-action 'self';">
+    <link rel="stylesheet" href="/_admin_static/admin.css">
 </head>
 <body>
     <h1>Overlay Admin</h1>
-    <div class="row">Streamer: <b id="s"></b></div>
-    <div class="row">Hotkeys (in this tab): <code>Ctrl + Numpad1</code> toggle; <code>Ctrl + Numpad2</code> reset</div>
-    <div class="row">
-        Client sampleN:
-        <input id="sampleN" type="number" min="1" value="32">
-        <button id="apply">Apply</button>
+
+    <div class="grid">
+        <div>Streamer</div>
+        <div>
+            <input id="streamer" type="text" value="dougdoug" />
+            <button id="btn-streamer-apply">Connect</button>
+        </div>
+
+        <div>Admin Secret</div>
+        <div><input id="secret" type="text" placeholder="Paste ADMIN_SECRET from .env" /></div>
+
+        <div>Status</div>
+        <div><span id="status" class="status off">INACTIVE</span></div>
+
+        <div>Controls</div>
+        <div class="controls">
+            <button id="btn-toggle">Toggle Active</button>
+            <button id="btn-reset">Reset</button>
+        </div>
+
+        <div>Client sampleN</div>
+        <div class="controls">
+            <button id="btn-sample-dec">−</button>
+            <input id="sampleN" type="number" value="32" min="1" />
+            <button id="btn-sample-inc">+</button>
+            <button id="btn-sample-apply">Apply</button>
+            <span>— “1 in N” clicks sent by viewers</span>
+        </div>
+
+        <div>Hotkeys (this tab)</div>
+        <div class="controls">
+            Toggle: <kbd id="hk-toggle-display"></kbd>
+            <button id="hk-toggle-record">Record</button>
+            &nbsp; Reset: <kbd id="hk-reset-display"></kbd>
+            <button id="hk-reset-record">Record</button>
+        </div>
     </div>
+
+    <h3>Log</h3>
     <pre id="log"></pre>
-    <script>const params = new URLSearchParams(location.search);
-    const streamer = params.get('streamer') || 'dougdoug';
-    document.getElementById('s').textContent = streamer;
 
-    const ws = new WebSocket(`ws://localhost:8787/ws?streamer=${encodeURIComponent(streamer)}&role=admin`);
-    const logEl = document.getElementById('log');
-    const SECRET = 'REPLACE_ME_WITH_A_LONG_RANDOM_STRING'; // must match .env ADMIN_SECRET
-
-    function log(m){ logEl.textContent = m + '\n' + logEl.textContent; }
-
-    ws.onopen = ()=>log('WS connected');
-    ws.onmessage = (ev)=>log('MSG ' + ev.data);
-    ws.onclose = ()=>log('WS closed');
-
-    function sendAdmin(action, value){
-      ws.send(JSON.stringify({ type:'admin', action, value, secret: SECRET }));
-    }
-
-    document.addEventListener('keydown', (e) => {
-      if (!e.ctrlKey) return;
-      if (e.code === 'Numpad1') { e.preventDefault(); sendAdmin('toggle'); }
-      if (e.code === 'Numpad2') { e.preventDefault(); sendAdmin('reset'); }
-    });
-
-    document.getElementById('apply').addEventListener('click', ()=>{
-      const v = parseInt(document.getElementById('sampleN').value, 10);
-      if (Number.isInteger(v) && v >= 1) sendAdmin('setSampleN', v);
-    });</script>
+    <script src="/_admin_static/admin.js"></script>
 </body>
 </html>

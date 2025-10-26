@@ -1,8 +1,38 @@
+# OS cruft
+.DS_Store
+Thumbs.db
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Env / secrets
+backend/.env
+backend/.env.local
+backend/.env.*.local
+
+# Logs & pids
+*.log
+backend/logs/
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# Editor/IDE
+.vscode/
+.idea/
+*.swp
 .vs/
-*.user
-*.suo
-*.vscode/
-obj/
-bin/
-Debug/
-Release/
+
+# Build / cache (future-proof)
+dist/
+build/
+.cache/
+coverage/
+
+# Cloudflare
+.cloudflare/

@@ -7,7 +7,7 @@
     <meta http-equiv="Content-Security-Policy"
           content="default-src 'self';
                  frame-src https://player.twitch.tv;
-                 connect-src 'self' https://api.overlay.phummylw.com ws: wss:;
+                 connect-src 'self' https: wss:;
                  img-src 'self' data:;
                  style-src 'self' 'unsafe-inline';
                  script-src 'self';
@@ -16,6 +16,7 @@
     <meta name="referrer" content="no-referrer">
     <link rel="stylesheet" href="/overlay.css">
     <script src="/config.js"></script>
+    <script src="/overlay.js" defer></script>
 </head>
 <body>
     <div class="wrapper">
@@ -25,11 +26,5 @@
         </div>
     </div>
     <div class="hint" id="hint">Overlay: INACTIVE</div>
-    <script>const segs = location.pathname.split('/').filter(Boolean);
-    const streamer = segs[0] || 'dougdoug';
-    const parent = location.hostname;
-    const src = `https://player.twitch.tv/?channel=${encodeURIComponent(streamer)}&parent=${encodeURIComponent(parent)}&muted=true`;
-    document.getElementById('player').src = src;</script>
-    <script src="/overlay.js"></script>
 </body>
 </html>
